@@ -48,14 +48,13 @@ export default function SetCard({
         setSets({ ...sets, [set]: sets[set] ? undefined : files });
       }}
     >
-      <Image
+      <img
         src={`/asset/${encodeURIComponent(file.relativePath)}`}
         alt={set}
-        className="object-cover"
-        fill
+        className="absolute top-0 left-0 object-cover w-full h-full object-center z-0"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
-      <CardHeader className="z-10 text-shadow-2xs top-0 left-0 w-full h-full flex flex-col justify-end items-start">
+      <CardHeader className="z-20 text-shadow-2xs top-0 left-0 w-full h-full flex flex-col justify-end items-start">
         <CardTitle className="text-white text-2xl font-bold">{set}</CardTitle>
       </CardHeader>
       <CardContent className="z-10 h-min text-white bg-black/50 bottom-0 left-0 w-full flex flex-col justify-end items-start">

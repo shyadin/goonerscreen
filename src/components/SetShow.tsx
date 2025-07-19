@@ -64,13 +64,12 @@ export default function SetShow({ files }: { files: FileMeta[] }) {
   if (file.mimeType.startsWith("video/")) {
     return (
       <div className={cn("w-full relative h-full overflow-hidden")}>
-        <Image
+        <img
           src={`/asset/${encodeURIComponent(
             file.relativePath.replace(".webm", ".webp")
           )}`}
           alt={file.name}
-          className="object-cover blur-xl -z-10"
-          fill
+          className="absolute top-0 left-0 object-cover w-full h-full object-center z-0 blur-xl"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <video
@@ -88,18 +87,16 @@ export default function SetShow({ files }: { files: FileMeta[] }) {
 
   return (
     <div className={cn("w-full relative h-full overflow-hidden")}>
-      <Image
+      <img
         src={`/asset/${encodeURIComponent(file.relativePath)}`}
         alt={file.name}
-        className="object-cover blur-xl"
-        fill
+        className="absolute top-0 left-0 object-cover w-full h-full object-center z-0 blur-xl"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
-      <Image
+      <img
         src={`/asset/${encodeURIComponent(file.relativePath)}`}
         alt={file.name}
-        className="object-contain"
-        fill
+        className="absolute top-0 left-0 object-contain w-full h-full object-center z-0"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
     </div>
