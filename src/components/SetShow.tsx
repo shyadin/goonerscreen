@@ -50,16 +50,6 @@ export default function SetShow({
       return;
     }
 
-    if (file.mimeType.startsWith("video/")) {
-      const video = document.getElementById(`video-${file.relativePath}`);
-      if (video) {
-        video.addEventListener("ended", () => {
-          pickRandomFile();
-        });
-        clearInterval(interval);
-      }
-    }
-
     if (file.mimeType.startsWith("image/")) {
       const image = document.getElementById(`image-${file.relativePath}`);
       if (image) {
@@ -71,6 +61,30 @@ export default function SetShow({
 
     return () => clearInterval(interval);
   }, [file, duration, pickRandomFile]);
+
+  useEffect(() => {
+    if (!file || !file.mimeType.startsWith("video/")) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const video = document.getElementById(`video-${file.relativePath}`);
+      if (video) {
+        const videoElement = video as HTMLVideoElement;
+        videoElement.addEventListener("ended", () => {
+          pickRandomFile();
+        });
+        videoElement.addEventListener("error", () => {
+          pickRandomFile();
+        });
+        if (videoElement.currentTime >= videoElement.duration - 0.1) {
+          pickRandomFile();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [file, pickRandomFile]);
 
   if (!file) {
     return null;
