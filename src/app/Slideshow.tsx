@@ -34,7 +34,11 @@ export default function Slideshow() {
         <SetShow key={set} files={files ?? []} />
       ))}
       {secondRow.map(([set, files]) => (
-        <SetShow key={set} files={files ?? []} />
+        <SetShow
+          key={set}
+          files={files ?? []}
+          isSingle={secondRow.length === 1}
+        />
       ))}
     </div>
   );

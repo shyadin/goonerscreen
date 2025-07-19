@@ -5,7 +5,13 @@ import Image from "next/image";
 import { cn, randomDuration, randomPick } from "~/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export default function SetShow({ files }: { files: FileMeta[] }) {
+export default function SetShow({
+  files,
+  isSingle,
+}: {
+  files: FileMeta[];
+  isSingle?: boolean;
+}) {
   const pickableFiles = useMemo(() => {
     const baseFiles = files.filter(
       (f) => f.mimeType.startsWith("image/") || f.mimeType.startsWith("video/")
@@ -63,7 +69,12 @@ export default function SetShow({ files }: { files: FileMeta[] }) {
 
   if (file.mimeType.startsWith("video/")) {
     return (
-      <div className={cn("w-full relative h-full overflow-hidden")}>
+      <div
+        className={cn(
+          "w-full relative h-full overflow-hidden",
+          isSingle && "col-span-2"
+        )}
+      >
         <img
           src={`/asset/${encodeURIComponent(
             file.relativePath.replace(".webm", ".webp")
@@ -86,7 +97,12 @@ export default function SetShow({ files }: { files: FileMeta[] }) {
   }
 
   return (
-    <div className={cn("w-full relative h-full overflow-hidden")}>
+    <div
+      className={cn(
+        "w-full relative h-full overflow-hidden",
+        isSingle && "col-span-2"
+      )}
+    >
       <img
         src={`/asset/${encodeURIComponent(file.relativePath)}`}
         alt={file.name}
