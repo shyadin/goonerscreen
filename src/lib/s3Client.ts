@@ -76,6 +76,21 @@ export async function uploadFileIfNotExists(
   );
 }
 
+export async function uploadFile(
+  key: string,
+  buffer: Buffer,
+  mimeType: string
+): Promise<void> {
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: "goonerscreen",
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
+    })
+  );
+}
+
 export async function deleteFile(key: string) {
   await s3Client.send(
     new DeleteObjectCommand({

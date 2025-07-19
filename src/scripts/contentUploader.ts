@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import mime from "mime";
-import { uploadFileIfNotExists } from "~/lib/s3Client";
+import { uploadFile, uploadFileIfNotExists } from "~/lib/s3Client";
 import { FileMeta } from "~/types";
 
 const SOURCE_DIR = path.resolve(
@@ -50,7 +50,7 @@ async function main() {
 
   // Upload data.json to R2
   const dataBuffer = await fs.readFile(DATA_JSON);
-  await uploadFileIfNotExists("data.json", dataBuffer, "application/json");
+  await uploadFile("data.json", dataBuffer, "application/json");
   console.log("Uploaded data.json to R2.");
 }
 

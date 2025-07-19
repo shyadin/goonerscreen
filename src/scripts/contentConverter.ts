@@ -117,8 +117,22 @@ async function processVideo(
 
   if (!doesOutputVideoExist) {
     try {
+      // Setup progress bar
+      const bar = new cliProgress.SingleBar({
+        format: `[Video] {filename} |{bar}| {percentage}% | {frames} frames | {time}`,
+        barCompleteChar: "\u2588",
+        barIncompleteChar: "-",
+        hideCursor: true,
+        clearOnComplete: true,
+      });
+      let lastPercent = 0;
+      let lastFrames = 0;
+      let lastTime = "0:00:00.00";
+
+      // Start conversion with fluent-ffmpeg
       console.log(`[Video] Starting conversion: ${relPath}`);
       await new Promise<void>((resolve, reject) => {
+        bar.start(100, 0, { filename: relPath, frames: 0, time: "0:00:00.00" });
         ffmpeg(inputPath)
           .outputOptions([
             "-vf",
@@ -145,12 +159,31 @@ async function processVideo(
           .on("start", (commandLine) => {
             console.log(`[Video] ffmpeg started: ${commandLine}`);
           })
+          .on("progress", (progress) => {
+            const percent = progress.percent
+              ? Math.min(progress.percent, 100)
+              : lastPercent;
+            lastPercent = percent;
+            lastFrames = progress.frames || lastFrames;
+            lastTime = progress.timemark || lastTime;
+            bar.update(percent, {
+              filename: relPath,
+              frames: lastFrames,
+              time: lastTime,
+            });
+          })
           .on("error", (err) => {
             console.error(`[Video] ffmpeg error: ${relPath}`, err);
             reject(err);
           })
           .on("end", () => {
-            console.log(`[Video] Conversion finished: ${relPath}`);
+            bar.update(100, {
+              filename: relPath,
+              frames: lastFrames,
+              time: lastTime,
+            });
+            bar.stop();
+            console.log(`\n[Video] Conversion finished: ${relPath}`);
             resolve();
           })
           .save(outputFile);
