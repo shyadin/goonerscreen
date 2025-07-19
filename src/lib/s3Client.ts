@@ -9,6 +9,7 @@ import "dotenv/config";
 
 export const s3Client = new S3Client({
   endpoint: `https://${process.env.R2_ACCOUNT_ID!}.r2.cloudflarestorage.com`,
+  region: "us-east-1",
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
