@@ -45,6 +45,11 @@ export default function SetShow({
       pickRandomFile();
     }, intervalDuration);
 
+    if (!file) {
+      pickRandomFile();
+      return;
+    }
+
     if (file.mimeType.startsWith("video/")) {
       const video = document.getElementById(`video-${file.relativePath}`);
       if (video) {
@@ -66,6 +71,10 @@ export default function SetShow({
 
     return () => clearInterval(interval);
   }, [file, duration, pickRandomFile]);
+
+  if (!file) {
+    return null;
+  }
 
   if (file.mimeType.startsWith("video/")) {
     return (
