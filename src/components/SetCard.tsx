@@ -15,17 +15,14 @@ export default function SetCard({
   files: FileMeta[];
 }) {
   const { sets, setSets } = useSetStore();
-  const [file, setFile] = useState<FileMeta | undefined>(
-    randomPick(files.filter((f) => f.mimeType.startsWith("image/")))
-  );
+  const webpFiles = files.filter((f) => f.relativePath.endsWith(".webp"));
+  const [file, setFile] = useState<FileMeta | undefined>(webpFiles[0]);
   const duration = useMemo<number>(() => randomDuration(120, 130), []);
 
   const pickRandomFile = useCallback(() => {
-    const randomFile = randomPick(
-      files.filter((f) => f.mimeType.startsWith("image/"))
-    );
+    const randomFile = randomPick(webpFiles);
     setFile(randomFile);
-  }, [files]);
+  }, [webpFiles]);
 
   useEffect(() => {
     const intervalDuration = duration * 1000;

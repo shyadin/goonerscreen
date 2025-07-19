@@ -3,6 +3,7 @@ import StartSlideshowButton from "~/components/StartSlideshowButton";
 import { getFile } from "~/lib/s3Client";
 import { FileMeta } from "~/types";
 import FileGrid from "./FileGrid";
+import CloseSlideshowButton from "~/components/CloseSlideshowButton";
 
 export default async function Home() {
   const { body } = await getFile("data.json");
@@ -13,6 +14,7 @@ export default async function Home() {
     <div className="font-sans min-h-screen">
       <FileGrid files={data} />
       <StartSlideshowButton />
+      <CloseSlideshowButton />
     </div>
   );
 }

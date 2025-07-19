@@ -52,210 +52,212 @@ async function processImage(
   outputPath: string,
   relPath: string
 ) {
-  const image = sharp(inputPath);
-  const metadata = await image.metadata();
-  const width = metadata.width || 0;
-  const resizeWidth = width > 900 ? 900 : width;
-  const outputFile = sanitizePath(
-    outputPath.replace(path.extname(outputPath), ".webp")
-  );
+  try {
+    const image = sharp(inputPath);
+    const metadata = await image.metadata();
+    const width = metadata.width || 0;
+    const resizeWidth = width > 900 ? 900 : width;
+    const outputFile = sanitizePath(
+      outputPath.replace(path.extname(outputPath), ".webp")
+    );
 
-  const doesOutputExist = await fs
-    .stat(outputFile)
-    .then(() => true)
-    .catch(() => false);
-  if (doesOutputExist) {
-    return;
+    const doesOutputExist = await fs
+      .stat(outputFile)
+      .then(() => true)
+      .catch(() => false);
+    if (doesOutputExist) {
+      return;
+    }
+
+    await sharp(inputPath)
+      .resize({ width: resizeWidth })
+      .webp({ quality: 80 })
+      .toFile(outputFile);
+
+    const original = (await fs.stat(inputPath)).size;
+    const converted = (await fs.stat(outputFile)).size;
+    fileStats.push({
+      original,
+      converted,
+      relPath: relPath.replace(path.extname(relPath), ".webp"),
+    });
+    // Realtime reporting
+    const saved = original - converted;
+    console.log(
+      `[Image] ${relPath.replace(path.extname(relPath), ".webp")}: ${formatSize(
+        original
+      )} -> ${formatSize(converted)} (saved ${formatSize(saved)})`
+    );
+  } catch (err) {
+    console.error(`[Image] Failed to process image: ${relPath}`, err);
   }
-
-  await sharp(inputPath)
-    .resize({ width: resizeWidth })
-    .webp({ quality: 80 })
-    .toFile(outputFile);
-
-  const original = (await fs.stat(inputPath)).size;
-  const converted = (await fs.stat(outputFile)).size;
-  fileStats.push({
-    original,
-    converted,
-    relPath: relPath.replace(path.extname(relPath), ".webp"),
-  });
-  // Realtime reporting
-  const saved = original - converted;
-  console.log(
-    `[Image] ${relPath.replace(path.extname(relPath), ".webp")}: ${formatSize(
-      original
-    )} -> ${formatSize(converted)} (saved ${formatSize(saved)})`
-  );
 }
+
+// A simpler, more robust version of processVideo that avoids temp files and progress bars for debugging.
+// This version just converts the video and generates a thumbnail, with clear error reporting.
 
 async function processVideo(
   inputPath: string,
   outputPath: string,
   relPath: string
 ) {
-  // Ensure temp directory exists
-  await ensureDir(TEMP_VIDEO_DIR);
+  // Ensure output directory exists
+  await ensureDir(path.dirname(outputPath));
 
   const outputFile = outputPath.replace(
     path.extname(outputPath),
     VIDEO_OUTPUT_EXTENSION
   );
 
-  const doesOutputExist = await fs
+  // If output already exists, skip conversion
+  const doesOutputVideoExist = await fs
     .stat(outputFile)
     .then(() => true)
     .catch(() => false);
-  if (doesOutputExist) {
-    return;
+
+  if (!doesOutputVideoExist) {
+    try {
+      console.log(`[Video] Starting conversion: ${relPath}`);
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg(inputPath)
+          .outputOptions([
+            "-vf",
+            "scale=900:-2",
+            "-c:v",
+            "libsvtav1",
+            "-crf",
+            "45",
+            "-b:v",
+            "0",
+            "-cpu-used",
+            "8",
+            "-threads",
+            os.cpus().length.toString(),
+            "-row-mt",
+            "1",
+            "-strict",
+            "experimental",
+            "-c:a",
+            "libopus",
+            "-b:a",
+            "64k",
+          ])
+          .on("start", (commandLine) => {
+            console.log(`[Video] ffmpeg started: ${commandLine}`);
+          })
+          .on("error", (err) => {
+            console.error(`[Video] ffmpeg error: ${relPath}`, err);
+            reject(err);
+          })
+          .on("end", () => {
+            console.log(`[Video] Conversion finished: ${relPath}`);
+            resolve();
+          })
+          .save(outputFile);
+      });
+
+      const original = (await fs.stat(inputPath)).size;
+      const converted = (await fs.stat(outputFile)).size;
+      fileStats.push({
+        original,
+        converted,
+        relPath: relPath.replace(path.extname(relPath), VIDEO_OUTPUT_EXTENSION),
+      });
+      const saved = original - converted;
+      console.log(
+        `[Video] ${relPath.replace(
+          path.extname(relPath),
+          VIDEO_OUTPUT_EXTENSION
+        )}: ${formatSize(original)} -> ${formatSize(
+          converted
+        )} (saved ${formatSize(saved)})`
+      );
+    } catch (err) {
+      console.error(`[Video] Failed to convert video: ${relPath}`, err);
+      return;
+    }
   }
-
-  // Use unique temp names for input and output
-  const tempInput = path.join(
-    TEMP_VIDEO_DIR,
-    `input-${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(
-      inputPath
-    )}`
-  );
-  const tempOutput = sanitizePath(
-    path.join(
-      TEMP_VIDEO_DIR,
-      `output-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}${VIDEO_OUTPUT_EXTENSION}`
-    )
-  );
-
-  // Copy the source video to the temp directory
-  await fs.copyFile(inputPath, tempInput);
-
-  // Setup progress bar
-  const bar = new cliProgress.SingleBar({
-    format: `[Video] {filename} |{bar}| {percentage}% | {frames} frames | {time}`,
-    barCompleteChar: "\u2588",
-    barIncompleteChar: "-",
-    hideCursor: true,
-    clearOnComplete: true,
-  });
-  let lastPercent = 0;
-  let lastFrames = 0;
-  let lastTime = "0:00:00.00";
-
-  // Start conversion with fluent-ffmpeg
-  console.log(`[Video] Starting conversion: ${relPath}`);
-  await new Promise<void>((resolve, reject) => {
-    bar.start(100, 0, { filename: relPath, frames: 0, time: "0:00:00.00" });
-    ffmpeg(tempInput)
-      .outputOptions([
-        "-vf",
-        "scale=900:-2",
-        "-c:v",
-        "libsvtav1",
-        "-crf",
-        "45",
-        "-b:v",
-        "0",
-        "-cpu-used",
-        "8",
-        "-threads",
-        os.cpus().length.toString(),
-        "-row-mt",
-        "1",
-        "-strict",
-        "experimental",
-        "-c:a",
-        "libopus",
-        "-b:a",
-        "64k",
-      ])
-      .on("start", (commandLine) => {
-        console.log(`[Video] ffmpeg started: ${commandLine}`);
-      })
-      .on("progress", (progress) => {
-        const percent = progress.percent
-          ? Math.min(progress.percent, 100)
-          : lastPercent;
-        lastPercent = percent;
-        lastFrames = progress.frames || lastFrames;
-        lastTime = progress.timemark || lastTime;
-        bar.update(percent, {
-          filename: relPath,
-          frames: lastFrames,
-          time: lastTime,
-        });
-      })
-      .on("end", () => {
-        bar.update(100, {
-          filename: relPath,
-          frames: lastFrames,
-          time: lastTime,
-        });
-        bar.stop();
-        console.log(`\n[Video] Conversion finished: ${relPath}`);
-        resolve();
-      })
-      .on("error", async (err) => {
-        bar.stop();
-        console.error(`\n[Video] ffmpeg error: ${relPath}`, err);
-        try {
-          await unlink(tempInput);
-        } catch (e) {
-          console.error("Failed to delete temp input file:", e);
-        }
-        reject(err);
-      })
-      .save(tempOutput);
-  });
-
-  // Delete the temp input file
-  await unlink(tempInput);
-
-  // Ensure output directory exists
-  await ensureDir(path.dirname(outputFile));
-  // Move the converted file to the final destination
-  await fs.rename(tempOutput, outputFile);
 
   // Generate thumbnail
-  const thumbnailPath = outputFile.replace(VIDEO_OUTPUT_EXTENSION, ".webp");
-  try {
-    await createVideoThumbnail(outputFile, thumbnailPath);
-    console.log(`[Video] Thumbnail created: ${path.basename(thumbnailPath)}`);
-  } catch (err) {
-    console.error(`[Video] Failed to create thumbnail for ${relPath}:`, err);
+  const thumbnailPath = outputFile.replace(path.extname(outputFile), ".webp");
+  const doesThumbnailExist = await fs
+    .stat(thumbnailPath)
+    .then(() => true)
+    .catch(() => false);
+  if (!doesThumbnailExist) {
+    try {
+      await createVideoThumbnail(inputPath, thumbnailPath);
+      console.log(`[Video] Thumbnail created: ${path.basename(thumbnailPath)}`);
+    } catch (err) {
+      console.error(`[Video] Failed to create thumbnail for ${relPath}:`, err);
+    }
   }
-
-  const original = (await fs.stat(inputPath)).size;
-  const converted = (await fs.stat(outputFile)).size;
-  fileStats.push({
-    original,
-    converted,
-    relPath: relPath.replace(path.extname(relPath), VIDEO_OUTPUT_EXTENSION),
-  });
-  // Realtime reporting
-  const saved = original - converted;
-  console.log(
-    `[Video] ${relPath.replace(
-      path.extname(relPath),
-      VIDEO_OUTPUT_EXTENSION
-    )}: ${formatSize(original)} -> ${formatSize(converted)} (saved ${formatSize(
-      saved
-    )})`
-  );
 }
 
 async function createVideoThumbnail(videoPath: string, thumbnailPath: string) {
-  return new Promise<void>((resolve, reject) => {
-    ffmpeg(videoPath)
-      .on("end", () => resolve())
-      .on("error", (err) => reject(err))
-      // Grab a frame at 2 seconds in, scale to width 400px
-      .screenshots({
-        timestamps: ["2"],
-        filename: path.basename(thumbnailPath),
-        folder: path.dirname(thumbnailPath),
-        size: "400x?",
+  // We want to grab a frame at 2 seconds, but ensure the video is at least that long.
+  // If not, use the midpoint (or 0 if very short).
+  const getDuration = async (): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(videoPath, (err, metadata) => {
+        if (err) return reject(err);
+        if (
+          !metadata ||
+          !metadata.format ||
+          typeof metadata.format.duration !== "number"
+        ) {
+          return resolve(0);
+        }
+        resolve(metadata.format.duration);
       });
-  });
+    });
+  };
+
+  const duration = await getDuration();
+  let timestamp = 2;
+  if (duration <= 0) {
+    timestamp = 0;
+  } else if (duration < 2) {
+    // Use the midpoint if video is shorter than 2s
+    timestamp = duration / 2;
+  }
+  // Format timestamp as string, with up to 2 decimal places
+  const timestampStr = timestamp.toFixed(2).replace(/\.?0+$/, "");
+
+  // Try at desired timestamp, then fallback to 0 if it fails
+  const extractAndConvert = async (timestampValue: string) => {
+    // ffmpeg will output a jpg/png, so we need to convert to webp after
+    const tempJpg = thumbnailPath.replace(/\.webp$/, ".jpg");
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(videoPath)
+        .on("end", () => resolve())
+        .on("error", (err) => reject(err))
+        .screenshots({
+          timestamps: [timestampValue],
+          filename: path.basename(tempJpg),
+          folder: path.dirname(tempJpg),
+          size: "400x?",
+        });
+    });
+    // Convert to webp
+    await sharp(tempJpg).webp({ quality: 80 }).toFile(thumbnailPath);
+    // Remove temp jpg
+    await fs.unlink(tempJpg).catch(() => {});
+  };
+
+  try {
+    await extractAndConvert(timestampStr);
+  } catch (err) {
+    if (timestamp !== 0) {
+      try {
+        await extractAndConvert("0");
+      } catch (err2) {
+        throw err2;
+      }
+    } else {
+      throw err;
+    }
+  }
 }
 
 async function copyFile(inputPath: string, outputPath: string) {
