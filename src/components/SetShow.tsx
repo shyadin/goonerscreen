@@ -94,6 +94,10 @@ export default function SetShow({
         />
         <video
           src={`/asset/${encodeURIComponent(file.relativePath)}`}
+          loop={files.length === 1}
+          poster={`/asset/${encodeURIComponent(
+            file.relativePath.replace(".webm", ".webp")
+          )}`}
           autoPlay
           playsInline
           controls
