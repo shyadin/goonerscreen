@@ -1,9 +1,9 @@
-import SetCard from "~/components/SetCard";
 import StartSlideshowButton from "~/components/StartSlideshowButton";
 import { getFile } from "~/lib/s3Client";
 import { FileMeta } from "~/types";
 import FileGrid from "./FileGrid";
 import CloseSlideshowButton from "~/components/CloseSlideshowButton";
+import { Suspense } from "react";
 
 export default async function Home() {
   const { body } = await getFile("data.json");
@@ -12,7 +12,9 @@ export default async function Home() {
 
   return (
     <div className="font-sans min-h-screen">
-      <FileGrid files={data} />
+      <Suspense fallback={<div>Loading...</div>}>
+        <FileGrid files={data} />
+      </Suspense>
       <StartSlideshowButton />
       <CloseSlideshowButton />
     </div>

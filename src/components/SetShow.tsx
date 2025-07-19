@@ -11,8 +11,6 @@ export default function SetShow({ files }: { files: FileMeta[] }) {
       (f) => f.mimeType.startsWith("image/") || f.mimeType.startsWith("video/")
     );
 
-    console.log(baseFiles);
-
     const reducedFiles = baseFiles.reduce((acc, file) => {
       if (file.mimeType.startsWith("image/")) {
         const possibleVideoName = file.relativePath.replace(".webp", ".webm");
@@ -23,8 +21,6 @@ export default function SetShow({ files }: { files: FileMeta[] }) {
       acc.push(file);
       return acc;
     }, [] as FileMeta[]);
-
-    console.log(reducedFiles);
 
     return reducedFiles;
   }, [files]);
