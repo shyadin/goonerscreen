@@ -80,7 +80,7 @@ export default function SetShow({
             file.relativePath.replace(".webm", ".webp")
           )}`}
           alt={file.name}
-          className="absolute top-0 left-0 object-cover w-full h-full object-center z-0 blur-xl"
+          className="absolute top-0 left-0 object-cover w-full h-full object-center -z-10 blur-xl"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <video

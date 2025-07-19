@@ -18,6 +18,8 @@ export default function Slideshow() {
   return (
     <div
       className={cn("grid grid-cols-1 h-screen w-screen overflow-hidden", {
+        "grid-rows-1": secondRow.length === 0,
+        "grid-rows-2": secondRow.length > 0,
         "grid-cols-1": maxColumns === 1,
         "grid-cols-2": maxColumns === 2,
         "grid-cols-3": maxColumns === 3,
