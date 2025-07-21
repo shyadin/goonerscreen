@@ -2,7 +2,7 @@
 
 import { FileMeta } from "~/types";
 import Image from "next/image";
-import { cn, randomDuration, randomPick } from "~/lib/utils";
+import { cn, randomDuration, randomPick, shuffle } from "~/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function SetShow({
@@ -12,8 +12,9 @@ export default function SetShow({
   files: FileMeta[];
   isSingle?: boolean;
 }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const pickableFiles = useMemo(() => {
-    const baseFiles = files.filter(
+    const baseFiles = shuffle(files).filter(
       (f) => f.mimeType.startsWith("image/") || f.mimeType.startsWith("video/")
     );
 
@@ -30,37 +31,45 @@ export default function SetShow({
 
     return reducedFiles;
   }, [files]);
-  const [file, setFile] = useState<FileMeta>(randomPick(pickableFiles));
+  const file = useMemo(() => {
+    return pickableFiles[currentIndex];
+  }, [currentIndex, pickableFiles]);
   const duration = useMemo<number>(() => randomDuration(10, 15), []);
 
-  const pickRandomFile = useCallback(() => {
-    const randomFile = randomPick(pickableFiles);
-    setFile(randomFile);
-  }, [pickableFiles]);
+  const pickNextFile = useCallback(() => {
+    setCurrentIndex((prev) => {
+      if (prev === pickableFiles.length - 1) {
+        return 0;
+      }
+      return prev + 1;
+    });
+  }, [pickableFiles.length]);
 
   useEffect(() => {
-    const intervalDuration = duration * 1000;
-
-    const interval = setInterval(() => {
-      pickRandomFile();
-    }, intervalDuration);
-
     if (!file) {
-      pickRandomFile();
+      pickNextFile();
       return;
     }
 
     if (file.mimeType.startsWith("image/")) {
-      const image = document.getElementById(`image-${file.relativePath}`);
-      if (image) {
-        image.addEventListener("error", () => {
-          pickRandomFile();
-        });
-      }
-    }
+      const intervalDuration = duration * 1000;
 
-    return () => clearInterval(interval);
-  }, [file, duration, pickRandomFile]);
+      const interval = setInterval(() => {
+        pickNextFile();
+      }, intervalDuration);
+
+      if (file.mimeType.startsWith("image/")) {
+        const image = document.getElementById(`image-${file.relativePath}`);
+        if (image) {
+          image.addEventListener("error", () => {
+            pickNextFile();
+          });
+        }
+      }
+
+      return () => clearInterval(interval);
+    }
+  }, [file, duration, pickNextFile]);
 
   useEffect(() => {
     if (!file || !file.mimeType.startsWith("video/")) {
@@ -72,19 +81,16 @@ export default function SetShow({
       if (video) {
         const videoElement = video as HTMLVideoElement;
         videoElement.addEventListener("ended", () => {
-          pickRandomFile();
+          pickNextFile();
         });
         videoElement.addEventListener("error", () => {
-          pickRandomFile();
+          pickNextFile();
         });
-        if (videoElement.currentTime >= videoElement.duration - 0.1) {
-          pickRandomFile();
-        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [file, pickRandomFile]);
+  }, [file, pickNextFile]);
 
   if (!file) {
     return null;
