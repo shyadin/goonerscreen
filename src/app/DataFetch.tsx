@@ -23,11 +23,18 @@ export default async function DataFetch() {
     (v) => v.email === session?.user?.email
   );
 
+  if (!userAccess) {
+    return <div>No access</div>;
+  }
+
   const sets = (userAccess?.["available sets"].split(",") ?? []).map((v) =>
     v.trim()
   );
 
-  const files = (data.data as FileMeta[]).filter((v) => sets.includes(v.set));
+  const files =
+    userAccess.role === "owner" || sets.includes("all")
+      ? (data.data as FileMeta[])
+      : (data.data as FileMeta[]).filter((v) => sets.includes(v.set));
 
   return <FileGrid files={files} />;
 }
