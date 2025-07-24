@@ -6,10 +6,10 @@ import { FileMeta } from "~/types";
 import Slideshow from "./Slideshow";
 
 export default function FileGrid({ files }: { files: FileMeta[] }) {
-  const slideshow = useSetStore((state) => state.slideshow);
+  const isSlideshowActive = useSetStore((state) => state.isSlideshowActive);
   const sets = files.reduce(
     (acc: Record<string, FileMeta[]>, item: FileMeta) => {
-      const [set] = item.relativePath.split("/");
+      const set = item.set;
       acc[set] = acc[set] || [];
       acc[set].push(item);
       acc[set].sort((a, b) => a.name.localeCompare(b.name));
@@ -18,8 +18,8 @@ export default function FileGrid({ files }: { files: FileMeta[] }) {
     {}
   );
 
-  if (slideshow) {
-    return <Slideshow />;
+  if (isSlideshowActive) {
+    return <Slideshow data={sets} />;
   }
 
   return (

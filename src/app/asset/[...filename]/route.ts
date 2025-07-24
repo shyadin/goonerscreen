@@ -2,8 +2,6 @@ import { NextRequest } from "next/server";
 import { fileExistsInBucket, getFile } from "~/lib/s3Client";
 
 export async function GET(request: NextRequest) {
-  console.log(request.nextUrl.pathname);
-
   const filename = decodeURIComponent(request.nextUrl.pathname).replace(
     "/asset/",
     ""
@@ -23,9 +21,15 @@ export async function GET(request: NextRequest) {
 
   const buffer = Buffer.from(file.body);
 
-  console.log(file.mimeType);
-
   return new Response(buffer, {
-    headers: { "Content-Type": file.mimeType },
+    headers: {
+      "Content-Type": file.mimeType,
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "Content-Length": file.body.length.toString(),
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "Accept-Ranges": "bytes",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 }

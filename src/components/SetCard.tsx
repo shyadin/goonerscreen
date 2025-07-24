@@ -6,6 +6,7 @@ import Image from "next/image";
 import { cn, randomDuration, randomPick } from "~/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSetStore } from "./SetStore";
+import { useShallow } from "zustand/react/shallow";
 
 export default function SetCard({
   set,
@@ -14,8 +15,12 @@ export default function SetCard({
   set: string;
   files: FileMeta[];
 }) {
-  const { sets, setSets } = useSetStore();
-  const webpFiles = files.filter((f) => f.relativePath.endsWith(".webp"));
+  const selectedSetsGrid = useSetStore(
+    useShallow((state) => state.selectedSetsGrid.flat())
+  );
+  const setSelectedSetsGrid = useSetStore((state) => state.setSelectedSetsGrid);
+
+  const webpFiles = files.filter((f) => f.mimeType.endsWith("webp"));
   const [file, setFile] = useState<FileMeta | undefined>(webpFiles[0]);
   const duration = useMemo<number>(() => randomDuration(120, 130), []);
 
@@ -42,14 +47,14 @@ export default function SetCard({
     <Card
       className={cn(
         "w-full relative h-96 overflow-hidden p-0 cursor-pointer transition-all duration-300 hover:scale-102",
-        sets[set] && "border-4 border-red-500 scale-105"
+        selectedSetsGrid.includes(set) && "border-4 border-red-500 scale-105"
       )}
       onClick={() => {
-        setSets({ ...sets, [set]: sets[set] ? undefined : files });
+        setSelectedSetsGrid(set);
       }}
     >
       <img
-        src={`/asset/${encodeURIComponent(file.relativePath)}`}
+        src={`/asset/${encodeURIComponent(file.key)}`}
         alt={set}
         className="absolute top-0 left-0 object-cover w-full h-full object-center z-0"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

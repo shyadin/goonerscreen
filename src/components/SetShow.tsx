@@ -20,8 +20,8 @@ export default function SetShow({
 
     const reducedFiles = baseFiles.reduce((acc, file) => {
       if (file.mimeType.startsWith("image/")) {
-        const possibleVideoName = file.relativePath.replace(".webp", ".webm");
-        if (baseFiles.some((f) => f.relativePath === possibleVideoName)) {
+        const possibleVideoName = file.key.replace(".webp", ".webm");
+        if (baseFiles.some((f) => f.key === possibleVideoName)) {
           return acc;
         }
       }
@@ -59,7 +59,7 @@ export default function SetShow({
       }, intervalDuration);
 
       if (file.mimeType.startsWith("image/")) {
-        const image = document.getElementById(`image-${file.relativePath}`);
+        const image = document.getElementById(`image-${file.key}`);
         if (image) {
           image.addEventListener("error", () => {
             pickNextFile();
@@ -77,7 +77,7 @@ export default function SetShow({
     }
 
     const interval = setInterval(() => {
-      const video = document.getElementById(`video-${file.relativePath}`);
+      const video = document.getElementById(`video-${file.key}`);
       if (video) {
         const videoElement = video as HTMLVideoElement;
         videoElement.addEventListener("ended", () => {
@@ -106,23 +106,23 @@ export default function SetShow({
       >
         <img
           src={`/asset/${encodeURIComponent(
-            file.relativePath.replace(".webm", ".webp")
+            file.key.replace(".webm", ".webp")
           )}`}
           alt={file.name}
           className="absolute top-0 left-0 object-cover w-full h-full object-center -z-10 blur-xl"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <video
-          src={`/asset/${encodeURIComponent(file.relativePath)}`}
+          src={`/asset/${encodeURIComponent(file.key)}`}
           loop={files.length === 1}
           poster={`/asset/${encodeURIComponent(
-            file.relativePath.replace(".webm", ".webp")
+            file.key.replace(".webm", ".webp")
           )}`}
           autoPlay
           playsInline
           controls
           controlsList="nodownload"
-          id={`video-${file.relativePath}`}
+          id={`video-${file.key}`}
           className="h-full w-full overflow-hidden z-20"
         />
       </div>
@@ -137,13 +137,13 @@ export default function SetShow({
       )}
     >
       <img
-        src={`/asset/${encodeURIComponent(file.relativePath)}`}
+        src={`/asset/${encodeURIComponent(file.key)}`}
         alt={file.name}
         className="absolute top-0 left-0 object-cover w-full h-full object-center z-0 blur-xl"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
       <img
-        src={`/asset/${encodeURIComponent(file.relativePath)}`}
+        src={`/asset/${encodeURIComponent(file.key)}`}
         alt={file.name}
         className="absolute top-0 left-0 object-contain w-full h-full object-center z-0"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

@@ -5,8 +5,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
-import "dotenv/config";
-
 export const s3Client = new S3Client({
   endpoint: `https://${process.env.R2_ACCOUNT_ID!}.r2.cloudflarestorage.com`,
   region: "us-east-1",
